@@ -1,9 +1,14 @@
 # This snippet of code is to show you a simple evaluate for VecDB class, but the full evaluation for project on the Notebook shared with you.
 import numpy as np
 from vec_db import VecDB
+from pq import PQ
+from ivf import IVF
 import time
 from dataclasses import dataclass
 from typing import List
+import pickle
+import os
+
 
 @dataclass
 class Result:
@@ -16,14 +21,17 @@ def run_queries(db, np_rows, top_k, num_runs):
     results = []
     for _ in range(num_runs):
         query = np.random.random((1,70))
-        
         tic = time.time()
+        print("starting searching...")
         db_ids = db.retrieve(query, top_k)
         toc = time.time()
         run_time = toc - tic
-        
+        print(f"done searching in: {run_time}")
+
         tic = time.time()
+        print("sorting actual ids...")
         actual_ids = np.argsort(np_rows.dot(query.T).T / (np.linalg.norm(np_rows, axis=1) * np.linalg.norm(query)), axis= 1).squeeze().tolist()[::-1]
+        print("done sorting actual ids")
         toc = time.time()
         np_run_time = toc - tic
         
@@ -39,24 +47,28 @@ def eval(results: List[Result]):
         # case for retrieving number not equal to top_k, score will be the lowest
         if len(set(res.db_ids)) != res.top_k or len(res.db_ids) != res.top_k:
             scores.append( -1 * len(res.actual_ids) * res.top_k)
+            print("smth is wrong why does it return less than k")
             continue
         score = 0
         for id in res.db_ids:
             try:
                 ind = res.actual_ids.index(id)
                 if ind > res.top_k * 3:
+                    print("diff with 3 multiples or more")
                     score -= ind
+                else:
+                    print("noice result")
             except:
+                print("returned id isn't even in top_k")
                 score -= len(res.actual_ids)
         scores.append(score)
 
     return sum(scores) / len(scores), sum(run_time) / len(run_time)
 
-
 if __name__ == "__main__":
-    db = VecDB(db_size = 10**2)
-
-    all_db = db.get_all_rows()
-
-    res = run_queries(db, all_db, 5, 10)
-    print(eval(res))
+    db = VecDB(new_db=True, db_size=1* (10**6))
+    # print("fetching all data...")
+    # all_db = db.get_all_rows()
+    # print("done fetching")
+    # res = run_queries(db, all_db, 10, 1)
+    # print(eval(res))

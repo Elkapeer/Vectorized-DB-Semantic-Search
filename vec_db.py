@@ -1,6 +1,10 @@
 from typing import Dict, List, Annotated
 import numpy as np
 import os
+from pq import PQ
+from ivf import IVF
+import struct
+import pickle
 
 DB_SEED_NUMBER = 42
 ELEMENT_SIZE = np.dtype(np.float32).itemsize
@@ -22,7 +26,7 @@ class VecDB:
         rng = np.random.default_rng(DB_SEED_NUMBER)
         vectors = rng.random((size, DIMENSION), dtype=np.float32)
         self._write_vectors_to_file(vectors)
-        self._build_index()
+        self._build_index(vectors)
 
     def _write_vectors_to_file(self, vectors: np.ndarray) -> None:
         mmap_vectors = np.memmap(self.db_path, dtype=np.float32, mode='w+', shape=vectors.shape)
@@ -50,6 +54,17 @@ class VecDB:
             return np.array(mmap_vector[0])
         except Exception as e:
             return f"An error occurred: {e}"
+        
+    def get_cluster_vectors(self, ids):
+        cluster_vectors = []
+        with open(self.db_path, "rb") as file:
+            for id in ids:
+                file.seek(id * DIMENSION * ELEMENT_SIZE)
+                data = file.read(DIMENSION * ELEMENT_SIZE)
+                vector = struct.unpack(f'{DIMENSION}f', data)
+                cluster_vectors.append(vector)
+            file.close()
+        return cluster_vectors
 
     def get_all_rows(self) -> np.ndarray:
         # Take care this load all the data in memory
@@ -58,16 +73,12 @@ class VecDB:
         return np.array(vectors)
     
     def retrieve(self, query: Annotated[np.ndarray, (1, DIMENSION)], top_k = 5):
-        scores = []
-        num_records = self._get_num_records()
-        # here we assume that the row number is the ID of each vector
-        for row_num in range(num_records):
-            vector = self.get_one_row(row_num)
-            score = self._cal_score(query, vector)
-            scores.append((score, row_num))
-        # here we assume that if two rows have the same score, return the lowest ID
-        scores = sorted(scores, reverse=True)[:top_k]
-        return [s[1] for s in scores]
+        ivf = IVF()
+        with open("centroids.pkl", "rb") as f:
+            centroids = pickle.load(f)
+            f.close()
+            del f
+        return ivf.search(query, centroids, self, top_k)
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -76,8 +87,16 @@ class VecDB:
         cosine_similarity = dot_product / (norm_vec1 * norm_vec2)
         return cosine_similarity
 
-    def _build_index(self):
+    def _build_index(self, data):
         # Placeholder for index building logic
+        # pq = PQ()
+        # pq.generate_code_books(data)
+        # pq.encode_data(data)
+        # return
+        ivf = IVF()
+        ivf.train(data)
         pass
+
+        
 
 
