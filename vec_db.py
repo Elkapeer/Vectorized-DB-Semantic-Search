@@ -74,11 +74,13 @@ class VecDB:
     
     def retrieve(self, query: Annotated[np.ndarray, (1, DIMENSION)], top_k = 5):
         ivf = IVF()
-        with open("centroids.pkl", "rb") as f:
+        print("reading centroids")
+        with open(f"./{self.index_path}/centroids.pkl", "rb") as f:
             centroids = pickle.load(f)
             f.close()
             del f
-        return ivf.search(query, centroids, self, top_k)
+        print("done reading centroids")
+        return ivf.search(query, self.index_path, centroids, self, top_k)
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -94,7 +96,7 @@ class VecDB:
         # pq.encode_data(data)
         # return
         ivf = IVF()
-        ivf.train(data)
+        ivf.train(data, self.index_path)
         pass
 
         
