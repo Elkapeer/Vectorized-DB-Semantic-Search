@@ -10,7 +10,7 @@ import os
 
 class IVF:
 
-    no_of_clusters = 100
+    no_of_clusters = 20000
 
     def train(self, training_data, index_path):
         print("Clustering Kmeans...")
@@ -28,7 +28,7 @@ class IVF:
             with open(f"./{index_path}/clusters/cluster_{cluster}.pkl", "wb") as f:
                 pickle.dump(ids, f)
                 f.close()
-        with open(f"./{index_path}/centroids.pkl", "rb") as f:
+        with open(f"./{index_path}/centroids.pkl", "wb") as f:
             pickle.dump(kmeans.cluster_centers_, f)
             f.close()
         print("Clustering successful")
@@ -43,7 +43,7 @@ class IVF:
     
     def search(self, query, index_path, centroids, db, k : int):
         query = np.array(query).reshape((1,-1))
-        closest_clusters = np.argsort([np.linalg.norm(centroid - query) ** 2 for centroid in centroids])[:1] # TODO: return more closest clusters
+        closest_clusters = np.argsort([np.linalg.norm(centroid - query) ** 2 for centroid in centroids])[:k] # TODO: return more closest clusters
         similarities = []
         for closest_cluster in closest_clusters:
             with open(f"./{index_path}/clusters/cluster_{closest_cluster}.pkl", "rb") as f:
@@ -51,7 +51,7 @@ class IVF:
                 f.close()
                 del f
             print("fetching cluster...")
-            vectors = db.get_cluster_vectors(ids)
+            vectors = db.get_cluster_vectors_one_by_one(ids)
             print("cluster fetched")
             i = 0
             for vector in vectors:
@@ -59,5 +59,7 @@ class IVF:
                 similarities.append((cos, ids[i]))
                 i += 1
             del vectors
+            if len(similarities) > k: 
+                break
         similarities = sorted(similarities, key= lambda x : x[0], reverse=True)
         return [d[1] for d in similarities[:k]]

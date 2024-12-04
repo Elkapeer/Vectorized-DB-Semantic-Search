@@ -64,7 +64,15 @@ class VecDB:
                 vector = struct.unpack(f'{DIMENSION}f', data)
                 cluster_vectors.append(vector)
             file.close()
-        return cluster_vectors
+        return np.array(cluster_vectors)
+    
+    def get_cluster_vectors_one_by_one(self, ids):
+        cluster_vectors = []
+        for id in ids:
+            vector = self.get_one_row(id)
+            cluster_vectors.append(vector)
+        return np.array(cluster_vectors)
+
 
     def get_all_rows(self) -> np.ndarray:
         # Take care this load all the data in memory
