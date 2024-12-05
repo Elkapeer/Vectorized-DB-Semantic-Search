@@ -43,7 +43,7 @@ class IVF:
     
     def search(self, query, index_path, centroids, db, k : int):
         query = np.array(query).reshape((1,-1))
-        closest_clusters = np.argsort([np.linalg.norm(centroid - query) ** 2 for centroid in centroids])[:2] # TODO: return more closest clusters
+        closest_clusters = np.argsort([np.linalg.norm(centroid - query) ** 2 for centroid in centroids])[:k]
         similarities = []
         for closest_cluster in closest_clusters:
             with open(f"./{index_path}/clusters/cluster_{closest_cluster}.pkl", "rb") as f:
@@ -59,7 +59,7 @@ class IVF:
                 similarities.append((cos, ids[i]))
                 i += 1
             del vectors
-            # if len(similarities) > k: 
-            #     break
+            if len(similarities) > k: 
+                break
         similarities = sorted(similarities, key= lambda x : x[0], reverse=True)
         return [d[1] for d in similarities[:k]]
