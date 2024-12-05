@@ -59,7 +59,7 @@ class IVF:
                 similarities.append((cos, ids[i]))
                 i += 1
             del vectors
-            if len(similarities) > k: 
-                break
+            # if len(similarities) > k: 
+            #     break
         similarities = sorted(similarities, key= lambda x : x[0], reverse=True)
         return [d[1] for d in similarities[:k]]
