@@ -69,9 +69,9 @@ class IVF:
                 ids = pickle.load(f)
                 f.close()
                 del f
-            print("fetching cluster...")
+            #print("fetching cluster...")
             vectors = db.get_cluster_vectors_one_by_one(ids)
-            print("cluster fetched")
+            #print("cluster fetched")
             i = 0
             for vector in vectors:
                 cos = self.cos_similarity(query, vector)

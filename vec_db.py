@@ -83,12 +83,12 @@ class VecDB:
     
     def retrieve(self, query: Annotated[np.ndarray, (1, DIMENSION)], top_k = 5):
         ivf = IVF()
-        print("reading centroids")
+        #print("reading centroids")
         with open(f"./{self.index_path}/centroids.pkl", "rb") as f:
             centroids = pickle.load(f)
             f.close()
             del f
-        print("done reading centroids")
+        #print("done reading centroids")
         MAX_CLUSTER_SIZE = self.db_size // len(centroids)
         return ivf.search(query, self.index_path, centroids, self, top_k, max_loaded_clusters=(top_k + (top_k * DIMENSION * 16) // MAX_CLUSTER_SIZE))
     
