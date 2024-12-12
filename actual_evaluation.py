@@ -7,6 +7,7 @@ from typing import List
 from memory_profiler import memory_usage
 import gc
 
+
 @dataclass
 class Result:
     run_time: float
@@ -14,7 +15,8 @@ class Result:
     db_ids: List[int]
     actual_ids: List[int]
 
-def run_queries(db : VecDB, queries, top_k, actual_ids, num_runs):
+
+def run_queries(db: VecDB, queries, top_k, actual_ids, num_runs):
     """
     Run queries on the database and record results for each query.
 
@@ -40,6 +42,7 @@ def run_queries(db : VecDB, queries, top_k, actual_ids, num_runs):
         results_a.append(Result(run_time, top_k, db_ids, actual_ids[i]))
     return results_a
 
+
 def memory_usage_run_queries(args):
     """
     Run queries and measure memory usage during the execution.
@@ -53,8 +56,9 @@ def memory_usage_run_queries(args):
     """
     global results_a
     mem_before = max(memory_usage())
-    mem = memory_usage(proc=(run_queries, args, {}), interval = 1e-3)
+    mem = memory_usage(proc=(run_queries, args, {}), interval=1e-3)
     return results_a, max(mem) - mem_before
+
 
 def evaluate_result(results_a: List[Result]):
     """
@@ -74,19 +78,23 @@ def evaluate_result(results_a: List[Result]):
         run_time.append(res.run_time)
         # case for retireving number not equal to top_k, socre will be the lowest
         if len(set(res.db_ids)) != res.top_k or len(res.db_ids) != res.top_k:
-            scores.append( -1 * len(res.actual_ids) * res.top_k)
+            scores.append(-1 * len(res.actual_ids) * res.top_k)
             continue
         score = 0
+        index = 0
         for id in res.db_ids:
             try:
                 ind = res.actual_ids.index(id)
+                print(f"DB: {index}, Actual: {ind}")
                 if ind > res.top_k * 3:
                     score -= ind
             except:
                 score -= len(res.actual_ids)
+            index = index + 1
         scores.append(score)
 
     return sum(scores) / len(scores), sum(run_time) / len(run_time)
+
 
 def get_actual_ids_first_k(actual_sorted_ids, k):
     """
@@ -102,11 +110,12 @@ def get_actual_ids_first_k(actual_sorted_ids, k):
     """
     return [[id for id in actual_sorted_ids_one_q if id < k] for actual_sorted_ids_one_q in actual_sorted_ids]
 
+
 if __name__ == "__main__":
-    db = VecDB(new_db = False, index_file_path="db_15m", db_size=15* (10**6))
+    db = VecDB(new_db=False, index_file_path="db_10m", db_size=10 * (10 ** 6))  # try a 20 mil
 
     needed_top_k = 10000
-    rng = np.random.default_rng(10)
+    rng = np.random.default_rng(0)
     query1 = rng.random((1, 70), dtype=np.float32)
     query2 = rng.random((1, 70), dtype=np.float32)
     query3 = rng.random((1, 70), dtype=np.float32)
@@ -116,16 +125,20 @@ if __name__ == "__main__":
     vectors = db.get_all_rows()
     print("done fetching")
 
-    actual_sorted_ids_20m_q1 = np.argsort(vectors.dot(query1.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query1)), axis= 1).squeeze().tolist()[::-1][:needed_top_k]
+    actual_sorted_ids_20m_q1 = np.argsort(vectors.dot(query1.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query1)),axis=1).squeeze().tolist()[::-1][:needed_top_k]
     gc.collect()
-    actual_sorted_ids_20m_q2 = np.argsort(vectors.dot(query2.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query2)), axis= 1).squeeze().tolist()[::-1][:needed_top_k]
+    actual_sorted_ids_20m_q2 = np.argsort(
+        vectors.dot(query2.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query2)),
+        axis=1).squeeze().tolist()[::-1][:needed_top_k]
     gc.collect()
-    actual_sorted_ids_20m_q3 = np.argsort(vectors.dot(query3.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query3)), axis= 1).squeeze().tolist()[::-1][:needed_top_k]
+    actual_sorted_ids_20m_q3 = np.argsort(
+        vectors.dot(query3.T).T / (np.linalg.norm(vectors, axis=1) * np.linalg.norm(query3)),
+        axis=1).squeeze().tolist()[::-1][:needed_top_k]
     gc.collect()
 
     queries = [query1, query2, query3]
     actual_sorted_ids_20m = [actual_sorted_ids_20m_q1, actual_sorted_ids_20m_q2, actual_sorted_ids_20m_q3]
-    actual_ids = get_actual_ids_first_k(actual_sorted_ids_20m, 20*(10**6))
+    actual_ids = get_actual_ids_first_k(actual_sorted_ids_20m, 20 * (10 ** 6))
     # Make a dummy run query to make everything fresh and loaded (wrap up)
     res = run_queries(db, query_dummy, 5, actual_ids, 1)
     # actual runs to evaluate

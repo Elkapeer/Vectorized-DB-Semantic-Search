@@ -11,9 +11,10 @@ ELEMENT_SIZE = np.dtype(np.float32).itemsize
 DIMENSION = 70
 
 class VecDB:
-    def __init__(self, database_file_path = "saved_db.dat", index_file_path = "index.dat", new_db = True, db_size = None) -> None:
+    def __init__(self, database_file_path="saved_db.dat", index_file_path = "index.dat", new_db = True, db_size = None) -> None:
         self.db_path = database_file_path
         self.index_path = index_file_path
+        self.db_size = db_size
         if new_db:
             if db_size is None:
                 raise ValueError("You need to provide the size of the database")
@@ -44,7 +45,7 @@ class VecDB:
         mmap_vectors[num_old_records:] = rows
         mmap_vectors.flush()
         #TODO: might change to call insert in the index, if you need
-        self._build_index()
+        self._build_index(rows)
 
     def get_one_row(self, row_num: int) -> np.ndarray:
         # This function is only load one row in memory
@@ -88,7 +89,8 @@ class VecDB:
             f.close()
             del f
         print("done reading centroids")
-        return ivf.search(query, self.index_path, centroids, self, top_k)
+        MAX_CLUSTER_SIZE = self.db_size // len(centroids)
+        return ivf.search(query, self.index_path, centroids, self, top_k, max_loaded_clusters=(top_k + (top_k * DIMENSION * 16) // MAX_CLUSTER_SIZE))
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -103,8 +105,11 @@ class VecDB:
         # pq.generate_code_books(data)
         # pq.encode_data(data)
         # return
+        of_clusters = 15624
+        batch_size = of_clusters // 10
+
         ivf = IVF()
-        ivf.train(data, self.index_path)
+        ivf.train(data, self.index_path, of_clusters, batch_size)
         pass
 
         
