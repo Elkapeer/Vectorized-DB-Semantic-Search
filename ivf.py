@@ -58,7 +58,7 @@ class IVF:
         cosine_similarity = dot_product / (norm_vec1 * norm_vec2)
         return cosine_similarity
     
-    def search(self, query, index_path, centroids, db, k: int, max_loaded_clusters=5):
+    def search(self, query, index_path, centroids, db, k: int):
         query = np.array(query).reshape((70,))
         closest_clusters = np.argsort([(self.cos_similarity(query.T, centroid)) for centroid in centroids]).tolist()[::-1]
         similarities = []
@@ -78,7 +78,7 @@ class IVF:
                 similarities.append((cos, ids[i]))
                 i += 1
             del vectors
-            if loader_clusters >= max_loaded_clusters and len(similarities) >= k:
+            if len(similarities) >= k:
                 break
         similarities = sorted(similarities, key=lambda x: x[0], reverse=True)
         return [d[1] for d in similarities[:k]]

@@ -89,8 +89,8 @@ class VecDB:
             f.close()
             del f
         #print("done reading centroids")
-        MAX_CLUSTER_SIZE = self.db_size // len(centroids)
-        return ivf.search(query, self.index_path, centroids, self, top_k, max_loaded_clusters=(top_k + (top_k * DIMENSION * 16) // MAX_CLUSTER_SIZE))
+        #MAX_CLUSTER_SIZE = self.db_size // len(centroids)
+        return ivf.search(query, self.index_path, centroids, self, top_k)
     
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
